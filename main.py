@@ -112,5 +112,41 @@ def carregar_video():
 botao_carregar.config(command=carregar_video)
 
 
+# Modifique a função 'extrair_audio_e_transcrever' para salvar na pasta 'transcricao' na raiz do projeto
+
+def extrair_audio_e_transcrever(caminho_video):
+    try:
+        # Extrair áudio do vídeo usando moviepy
+        video = mp.VideoFileClip(caminho_video)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_audio_file:
+            tmp_audio_path = tmp_audio_file.name
+        video.audio.write_audiofile(tmp_audio_path, codec='pcm_s16le')
+        
+        # Transcrever áudio usando speech_recognition
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(tmp_audio_path) as source:
+            audio = recognizer.record(source)
+
+        try:
+            texto = recognizer.recognize_google(audio, language="pt-BR")
+        except sr.UnknownValueError:
+            texto = "Não foi possível transcrever o áudio."
+        except sr.RequestError:
+            texto = "Erro no serviço de reconhecimento de fala."
+
+        # Salvar a transcrição em um arquivo .txt na pasta 'transcricao' na raiz do projeto
+        nome_arquivo = os.path.basename(caminho_video)
+        nome_base, _ = os.path.splitext(nome_arquivo)
+        pasta_transcricao = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transcricao")
+        os.makedirs(pasta_transcricao, exist_ok=True)
+        caminho_txt = os.path.join(pasta_transcricao, f"{nome_base}_transcricao.txt")
+        with open(caminho_txt, "w", encoding="utf-8") as f:
+            f.write(texto)
+        print(f"Transcrição salva em: {caminho_txt}")
+        os.remove(tmp_audio_path)
+    except Exception as e:
+        print(f"Erro ao processar vídeo: {e}")
+
+
 
 janela.mainloop()
